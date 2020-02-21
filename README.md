@@ -58,13 +58,14 @@ python mutevo_simulator.py --help
 
 ##### Examples
 ```
-python mutevo_simulator.py -i input_EvoSimulation.csv -t 0 3 6 9 12 -r 50 50 50 50 50 -o output
-python mutevo_simulator.py -i input_EvoSimulation.csv -t 0 2 4 6 8 -r 75 75 75 75 50 -n DNA_extraction PCR sequencing -d 300 -p 27 -f w -o output
+python mutevo_simulator.py -i simu_input_exp.csv -t 0 9 18 27 36 45 54 63 72 81 90 99 108 -r 50 50 50 50 50 50 50 50 50 50 50 50 50 -o output
+python mutevo_simulator.py -i simu_input_exp.csv -t 0 9 18 27 36 45 54 63 72 81 90 99 108 -r 75 75 75 75 75 75 75 75 75 75 75 75 50 -n DNA_extraction PCR sequencing -d 300 -p 27 -u 2e-5 -m 2 -o output
 ```      
 
 
+
 #### 3.2. Fitness Estimation
-`pyfitseq.py` estimates the fitness of each genotype from read-count time-series data.
+`pyfitmut.py` estimates the fitness of each genotype from read-count time-series data.
 
 ##### OPTIONS
 * `--input` or `-i`: a .csv file, with each column being the read number per genotype at each sequenced time-point
