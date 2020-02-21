@@ -46,7 +46,7 @@ A walk-through is included as the jupyter notebook [here](https://github.com/Fan
 
 ##### OUTPUTS
 * `output_filename_EvoSimulation_Read_Number.csv`: read number per genotype for each time-point
-* `output_filename_EvoSimulation_Other_Info.csv`: information for mutations (include fitness effect, occured time, establishment time, lineage label, mutation label within a lineage), mean fitness for each time-point, a record of all inputs(including `t_seq`, `read_num_average_seq`, `noise_option`, `dna_copies`, `maximum_mutation_number`, `mutation_rate`)
+* `output_filename_EvoSimulation_Other_Info.csv`: information for mutations (include fitness effect, occured time, establishment time, lineage label, mutation label within a lineage), mean fitness for each time-point, a record of all inputs(including t_seq, read_num_average_seq, noise_option, dna_copies, maximum_mutation_number, mutation_rate)
 
 
 
