@@ -82,7 +82,7 @@ def main():
     noise_option = args.noise_option
     dna_copies = args.dna_copies
     pcr_cycles = args.pcr_cycles
-    lineage_maximum_mutation_number = args.maximum_mutation_number
+    maximum_mutation_number = args.maximum_mutation_number
     Ub = args.mutation_rate
     output_filename = args.output_filename
 
@@ -140,7 +140,7 @@ def main():
 
     x_mean = np.zeros(evo_num + 1)
 
-    if lineage_maximum_mutation_number == 1:  # [s, n, occurrence of mutation, establishment of mutation]
+    if maximum_mutation_number == 1:  # [s, n, occurrence of mutation, establishment of mutation]
         # Growth phase, with two possible noise involved: cell growth noise, bottleneck cell transfer noise
         cell_num_tempt = {i: {'mut0': cell_num_ini[i], 'mut1': []} for i in range(lineages_num)}
         cell_num_bottleneck_seq = dict()
@@ -242,10 +242,10 @@ def main():
                                                'Noise': noise_option,
                                                'gDNA_Copies': [dna_copies],
                                                'PCR_cycles': [pcr_cycles],
-                                               'Lineage_Maximum_Mut_Number': [lineage_maximum_mutation_number],
+                                               'Lineage_Maximum_Mut_Number': [maximum_mutation_number],
                                                'Ub': [Ub]}}
 
-    elif lineage_maximum_mutation_number == 2:   # [label, s, n, occurrence of mutation, establishment of mutation]
+    elif maximum_mutation_number == 2:   # [label, s, n, occurrence of mutation, establishment of mutation]
         # Growth phase, with two possible noise involved: cell growth noise, bottleneck cell transfer noise
         cell_num_tempt = {i: {'mut0': cell_num_ini[i], 'mut1': [], 'mut2': []} for i in range(lineages_num)}
         cell_num_bottleneck_seq = dict()
@@ -388,7 +388,7 @@ def main():
                                                'Noise': noise_option,
                                                'gDNA_Copies': [dna_copies],
                                                'PCR_cycles': [pcr_cycles],
-                                               'Lineage_Maximum_Mut_Number': [lineage_maximum_mutation_number],
+                                               'Lineage_Maximum_Mut_Number': [maximum_mutation_number],
                                                'Ub': [Ub]}}
 
     tempt = pd.DataFrame(evo_simulator_output['Read_Number'])
