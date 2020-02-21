@@ -65,7 +65,8 @@ python mutevo_simulator.py -i simu_input_exp.csv -t 0 9 18 27 36 45 54 63 72 81 
 
 
 #### 3.2. Fitness Estimation
-`pyfitmut.py` estimates the fitness of each genotype from read-count time-series data.
+`pyfitmut.py` identifies adaptive mutations and estimates their fitness effect as well as establishment time.
+
 
 ##### OPTIONS
 * `--input` or `-i`: a .csv file, with each column being the read number per genotype at each sequenced time-point
