@@ -53,7 +53,7 @@ A walk-through is included as the jupyter notebook [here](https://github.com/Fan
 
 ##### For Help
 ```
-python evo_simulator.py --help
+python mutevo_simulator.py --help
 ```
 
 ##### Examples
