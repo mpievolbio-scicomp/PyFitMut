@@ -7,7 +7,7 @@
 
 ### 1. What is PyFitMut?
 
-PyFitMut is a Python-based tool for identifying adaptive mutations and estimating their fitness effect as well as establishment time in competitive pooled growth of the isogenic population with spotaneous mutations. The detailed theory and algorithm of PyFitMut is introduced in reference: [S. F. Levy, et al. Quantitative Evolutionary Dynamics Using High-resolution Lineage Tracking. Nature, 519: 181-186 (2015)](https://www.nature.com/articles/nature14279). If you use this software, please reference: [](). PyFitMut is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+PyFitMut is a Python-based tool for identifying adaptive mutations and estimating their fitness effect as well as establishment time in competitive pooled growth of the isogenic population with spotaneous mutations. The detailed theory and algorithm of PyFitMut is introduced in reference: [S. F. Levy, et al. Quantitative Evolutionary Dynamics Using High-resolution Lineage Tracking. Nature, 519: 181-186 (2015)](https://www.nature.com/articles/nature14279). If you use this software, please reference: [???](???). PyFitMut is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
 
 It currently has two main functions:
 * `evomut_simulator.py` performs simulations of competitve pooled growth of a isogenic population with spotaneous mutations.
@@ -28,24 +28,28 @@ A walk-through is included as the jupyter notebook [here](https://github.com/Fan
 ### 3. How to use PyFitMut?
 
 #### 3.1. Evolution Simulation
-`evomut_simulator.py` models competative pooled growth of a isogenic population with spotaneous mutations. This simulation can be made to include sources of noise, including growth noise, noise from cell transfers, DNA extraction, PCR, and sequencing.
+`evomut_simulator.py` models competative pooled growth of a isogenic population with spotaneous mutations. This simulation can be made to include an arbitry probability distribution for finess effect of mutations，and include sources of noise, including growth noise, noise from cell transfers, DNA extraction, PCR, and sequencing.
 
 ##### OPTIONS
 * `--input` or `-i`: a .csv file, with
-  + 1st column of .csv: fitness of each genotype, [x1, x2, ...]
-  + 2nd column .csv: initial cell number of each genotype at generation 0, [n1, n2, ...]
+  + 1st column of .csv: initial cell number of each genotype at generation 0, [n1, n2, ...]
+  + 2nd column of .csv: bin edges of the arbitrary probability distribution for fitness effect of mutations
+  + 3rd column of .csv: counts frequency in each bin of the arbitrary probability distribution for fitness effect of mutations
 * `--t_seq` or `-t`: time-points evaluated in number of generations (`format: 0 t1 t2 ...`)
 * `--read_num_average_seq` or `-r`: average number of reads per genotype for each time-point (`format: 0 r1 r2 ...`)
 * `--noise_option` or `-n`: which types of noise to include in the simulation, default is all sources of noise (`default: growth bottleneck_transfer DNA_extraction PCR sequencing`)
 * `--dna_copies` or `-d`: average genome copy number per genotype used as template in PCR (`default: 500`)
-* `--pcr_cycles` or `-p`: number of cycles of PCR (`default: 25`) 
-* `--fitness_type` or `-f`: type of fitness: Wrightian fitness (w), or Malthusian fitness (m)' (`default: m`)
+* `--pcr_cycles` or `-p`: number of cycles of PCR (`default: 25`)
+* `--maximum_mutation_number` or `-m`: number of maximum mutations allowed for each lineage (`default: 1`)
+* `--mutation_rate` or `-u`: total beneficial mutation rate (`default: 1e-5`)
 * `--output_filename` or `-o`: prefix of output .csv files (`default: output`)
 
 ##### OUTPUTS
 * `output_filename_EvoSimulation_Read_Number.csv`: read number per genotype for each time-point
-* `output_filename_EvoSimulation_Mean_Fitness.csv`: mean fitness for each time-point
-* `output_filename_EvoSimulation_Input_Log.csv`: a record of all inputs
+* `output_filename_EvoSimulation_Other_Info.csv`: information for mutations (include fitness effect, occured time, establishment time, lineage label, mutation label within a lineage), mean fitness for each time-point, a record of all inputs(including `t_seq`, `read_num_average_seq`, `noise_option`, `dna_copies`, `maximum_mutation_number`, `mutation_rate`)
+
+
+
 
 ##### For Help
 ```
