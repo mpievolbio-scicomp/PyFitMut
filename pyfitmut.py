@@ -215,7 +215,7 @@ def main():
     #                                    2nd column: log likelihood value of each genotype, [f1, f2, ...],
     #                                    3rd column: estimated mean fitness per sequenced time-point
     #                                                [x_mean(0), x_mean(t1), ...],
-    #                                    4th column+: estimated reads number per genotype per sequencingtime-point,
+    #                                    4th column+: estimated reads number per genotype per sequencing time-point,
     #                                                 with each time-point being a column
     # ------------------------------------------------------------------------------------------------------------------
     global read_num_t1_global
@@ -325,7 +325,8 @@ def main():
     lineages_num = np.shape(read_num_seq)[0]
     result_output = {'Mutation_Fitness': np.zeros(lineages_num_unfiltered, dtype=float),
                      'Establishment_Time': np.zeros(lineages_num_unfiltered, dtype=float),
-                     'Likelihood_Log': np.zeros(lineages_num_unfiltered, dtype=float)}
+                     'Likelihood_Log': np.zeros(lineages_num_unfiltered, dtype=float),
+                     'Mean_Fitness': x_mean}
 
     lineage_id = filter_output['Lineage_ID']
 

@@ -58,42 +58,39 @@ python mutevo_simulator.py --help
 
 ##### Examples
 ```
-python mutevo_simulator.py -i simu_input_exp.csv -t 0 9 18 27 36 45 54 63 72 81 90 99 108 -r 50 50 50 50 50 50 50 50 50 50 50 50 50 -o output
+python mutevo_simulator.py -i simu_input_exp.csv -t 0 9 18 27 36 45 54 63 72 81 90 99 108 -r 50 50 50 50 50 50 50 50 50 50 50 50 50
 python mutevo_simulator.py -i simu_input_exp.csv -t 0 9 18 27 36 45 54 63 72 81 90 99 108 -r 75 75 75 75 75 75 75 75 75 75 75 75 50 -n DNA_extraction PCR sequencing -d 300 -p 27 -u 2e-5 -m 2 -o output
 ```      
 
 
 
 #### 3.2. Fitness Estimation
-`pyfitmut.py` identifies adaptive mutations and estimates their fitness effect as well as establishment time.
+`pyfitmut.py` identifies adaptive mutations and estimates their fitness effect as well as establishment time from read-count time-series data.
 
 
 ##### OPTIONS
 * `--input` or `-i`: a .csv file, with each column being the read number per genotype at each sequenced time-point
 * `--t_seq` or `-t`: sequenced time-points in number of generations (`format: 0 t1 t2 ...`)
-* `--max_iter_num` or `-m`: maximum number of iterations in the optimization (Small numbers can reduce running time and decrease accuracy.) (`default: 10`)
-* `--kappa` or `-k`: a noise parameter that characterizes the total noise introduced by growth, cell transfer, DNA extraction, PCR, and sequencing (To measure kappa empirically, see the reference: [S. F. Levy, et al. Quantitative Evolutionary Dynamics Using High-resolution Lineage Tracking. Nature, 519: 181–186 (2015)].) (`default: 2.5`)
-* `--regression_num` or `-g`: number of points used in the initial linear-regression-based fitness estimate (`default: 2`)
-* `--fitness_type` or `-f`: type of fitness: Wrightian fitness (w), or Malthusian fitness (m) (`default: m`)
 * `--output_filename` or `-o`: prefix of output .csv files (`default: output`)
 
 ##### OUTPUTS
 * `output_filename_FitSeq_Result.csv`: a .csv file, with
-  + 1st column of .csv: estimated fitness of each genotype, [x1, x2, ...]
-  + 2nd column of .csv: log likelihood value of each genotype, [f1, f2, ...]
-  + 3rd column of .csv: estimated mean fitness per sequenced time-point, [x_mean(0), x_mean(t1), ...]
-  + 4th+ columns of .csv: estimated read number per genotype per time-point, with each time-point being a column
+  + 1st column of .csv: estimated fitness of each lineage (0 if there is no mutation), [x1, x2, ...]
+  + 2nd column of .csv: estimated estabblishment time of each lineage (0 if there is no mutation), [tau1, tau2, ...]
+  + 3rd column of .csv: log likelihood value of each lineage (0 if there is no mutation), [f1, f2, ...]
+  + 4rd column of .csv: estimated mean fitness per sequenced time-point, [x_mean(0), x_mean(t1), ...]
 
 ##### For Help
 ```
-python pyfitseq.py --help
+python pyfitmut.py --help
 ```  
 
 ##### Examples
 ```
-python pyfitseq.py -i output_EvoSimulation_Read_Number.csv -t 0 3 6 9 12 -o output
-python pyfitseq.py -i output_EvoSimulation_Read_Number2.csv -t 0 2 6 8 -m 12 -k 2 -g 3 -f w -o output
-```  
+python pyfitmut.py -i output_EvoSimulation_Read_Number.csv -t 0 9 18 27 36 45 54 63 72 81 90 99 108 -n 9e8 9e8 9e8 9e8 9e8 9e8 9e8 9e8 9e8 9e8 9e8 9e8 9e8 -u 2e-5
+python pyfitmut.py -i output_EvoSimulation_Read_Number2.csv -t 0 2 6 8 -m 12 -k 2 -g 3 -f w -o output
+``` 
+
 
 
 
