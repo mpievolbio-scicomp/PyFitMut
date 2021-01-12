@@ -9,7 +9,7 @@
 
 ### 1. What is PyFitMut?
 
-PyFitMut is a Python-based tool for identifying adaptive mutations and estimating their fitness effect as well as establishment time in competitive pooled growth of the isogenic population with spotaneous mutations. The detailed theory and algorithm of PyFitMut is introduced in reference: [S. F. Levy, et al. Quantitative Evolutionary Dynamics Using High-resolution Lineage Tracking. Nature, 519: 181-186 (2015)](https://www.nature.com/articles/nature14279). If you use this software, please reference: [???](???). PyFitMut is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+PyFitMut is a Python-based tool that can identify spontaneous adaptive mutations for initially isogenic evolving population, as well as estimate the fitness effect and establishment time of those adaptive mutations. The detailed theory and algorithm of PyFitMut is introduced in reference: [S. F. Levy, et al. Quantitative Evolutionary Dynamics Using High-resolution Lineage Tracking. Nature, 519: 181-186 (2015)](https://www.nature.com/articles/nature14279). If you use this software, please reference: [???](???). PyFitMut is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
 
 It currently has two main functions:
 * `evomut_simulator.py` performs simulations of competitve pooled growth of a isogenic population with spotaneous mutations.
