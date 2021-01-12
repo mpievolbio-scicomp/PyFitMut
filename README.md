@@ -13,7 +13,7 @@ PyFitMut is a Python-based tool that can identify spontaneous adaptive mutations
 It currently has one main function:
 * `pyfitmut_v10.py` calculates the fitness and establishment time of all adaptive mutations from read-count time-series data.
     
-A walk-through is included as the jupyter notebook [here](https://github.com/FangfeiLi05/PyFitSeq/blob/master/PyFitMut_Walk_Through.ipynb).
+A walk-through is included as the jupyter notebook [here](https://github.com/FangfeiLi05/PyFitMut/blob/master/PyFitMut_walk_through.ipynb).
 
 
 
