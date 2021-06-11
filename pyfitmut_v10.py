@@ -1,4 +1,6 @@
+import numpy
 import numpy as np
+import sys
 import pandas as pd
 import scipy as sp
 from scipy.optimize import minimize
@@ -8,6 +10,19 @@ from tqdm import tqdm
 import argparse
 import itertools
 import csv
+from mpi4py import MPI
+import logging
+import mpi4py
+
+logging.basicConfig(level=logging.INFO)
+
+# Setup MPI
+comm = MPI.COMM_WORLD
+size = comm.Get_size()
+rank = comm.Get_rank()
+
+if rank == 0:
+    logging.info("Running on %d MPI ranks.", size)
 
 
 read_num_t1_global = None
@@ -453,11 +468,20 @@ def main():
     parser = argparse.ArgumentParser(description='Estimate fitness and establishment time of each spontanuous adaptive '
                                                  'mutations in a competitive pooled growth experiment',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i', '--input', type=str, help='a .csv file: with each column being the read number per '
-                                                        'genotype at each sequenced time-point')
-    parser.add_argument('-t', '--t_seq', type=str, 
+    parser.add_argument('-i',
+                        '--input',
+                        type=str,
+                        help='a .csv file: with each column being the read number per genotype at each sequenced '\
+                             'time-point',
+                        required=True)
+
+    parser.add_argument('-t',
+                        '--t_seq',
+                        type=str,
                         help='a .csv file of 2 columns: 1st column is sequenced time-points evaluated in number of generations, '
-                             '2nd column is total number of cells of the population for each sequenced time-point.')
+                             '2nd column is total number of cells of the population for each sequenced time-point.',
+                        required=True)
+
     parser.add_argument('-u', '--mutation_rate', type=float, default=1e-5, help='total beneficial mutation rate')
     parser.add_argument('-c', '--c', type=float, default=0.5, help='a noise parameter that characterizes the cell '
                                                                    'growth and cell transfer')  # might need change
@@ -473,6 +497,8 @@ def main():
     output_filename = args.output_filename
 
     lineages_num_unfiltered = np.shape(read_num_seq)[0]
+    if rank == 0:
+        logging.info("Number of unfiltered lineages: %d", lineages_num_unfiltered)
 
     # remove very noisy lineages
     filter_output = fun_filter(read_num_seq)
@@ -538,6 +564,7 @@ def main():
     Ub_global = Ub
 
     read_num_seq = read_num_seq[:, :-1]
+
     cell_num_seq = read_num_seq / read_depth_seq_global * cell_depth_seq_global
     
     result_output = {'Mutation_Fitness': np.zeros(lineages_num_unfiltered),
@@ -550,32 +577,86 @@ def main():
 
     lineage_id = filter_output['Lineage_ID']
     lineages_num = np.shape(read_num_seq)[0]
+    if rank == 0:
+        logging.info("Number of filtered lineages: %d", lineages_num_unfiltered)
     #x0 = [0.005, np.random.uniform(0,9)]
     #x0 = [0.01, 0.01]
     x0 = [0.01, 50/100]
     
     bounds = Bounds([0.001, -150/100], [0.5, math.floor(t_seq_global[-1] - 1)/100])
     
-    for i in tqdm(range(int(lineages_num))):
+    # for i in tqdm(range(int(lineages_num))):
+
+    # Master process takes the first few tasks such that the rest can be distributed evenly across slaves.
+    all_tasks = np.array_split(np.arange(lineages_num), size)
+    my_tasks = all_tasks[rank]
+    number_of_tasks = [len(chunk) for chunk in all_tasks]
+    split_sizes = np.array(number_of_tasks)*6
+    displacements = np.insert(np.cumsum(split_sizes), 0, 0)[0:-1]
+
+    logging.info("rank: %d | tasks: %s | ntasks: %d", rank, str(my_tasks), len(my_tasks))
+
+    comm.Barrier()
+    if rank == 0:
+        logging.debug("displacements: %s", str(displacements))
+
+    send_buf = np.zeros((len(my_tasks), 6), dtype=np.double)
+    recv_buf = None
+    if rank == 0:
+        recv_buf = np.zeros((lineages_num, 6), dtype=np.double)
+
+    for i in tqdm(my_tasks):
+        t = i - my_tasks[0]
+
+        send_buf[t, 0] = i
+
+        # logging.debug("Running tasks %d on rank %d", i, rank)
         read_num_measure_global = read_num_seq[i, :]
         cell_num_measure_global = cell_num_seq[i, :]
         tempt1 = -fun_likelihood_lineage_neu_opt([1e-5, 0])
-        result_output['Likelihood_Log_Neutral'][lineage_id[i]] = tempt1
-        if  tempt1 <= -60:
+        # result_output['Likelihood_Log_Neutral'][lineage_id[i]] = tempt1
+        send_buf[t, 5] = tempt1                         # Likelihood log neutral
+
+        if tempt1 <= -60:
+            logging.debug("rank = %d | i = %d: Entering minimization", rank, i)
             opt_output = minimize(fun_likelihood_lineage_adp_opt, x0, method='L-BFGS-B', bounds=bounds, 
                                   options={'ftol': 1e-8, 'gtol': 1e-8, 'eps':1e-8, 'maxls':100, 'disp': False})
-              
-            result_output['Mutation_Fitness'][lineage_id[i]] = opt_output.x[0]
-            result_output['Establishment_Time'][lineage_id[i]] = opt_output.x[1]*100
-            result_output['Likelihood_Log_Adaptive'][lineage_id[i]] = -opt_output.fun
-            result_output['Likelihood_Log'][lineage_id[i]] = -opt_output.fun - tempt1
+            # Append results for this lineage to the mpi_results collector.
+            logging.debug("rank= %d | i=%d: Done with minimization", rank, i )
 
-    tempt = list(itertools.zip_longest(*list(result_output.values())))
-    with open(output_filename + '_MutSeq_Result.csv', 'w') as f:
-        w = csv.writer(f)
-        w.writerow(result_output.keys())
-        w.writerows(tempt)
-        
-    
+            logging.debug("rank = %d | i = %d | send_buf = %s", rank, i, str(send_buf))
+            send_buf[t, 1] = opt_output.x[0]                # Mutation fitness
+            send_buf[t, 2] = opt_output.x[1]*100            # Establishment time
+            send_buf[t, 3] = -opt_output.fun - tempt1       # Likelihood log
+            send_buf[t, 4] = -opt_output.fun                # Likelihood log adaptive
+
+
+    comm.Barrier()
+    comm.Gatherv(send_buf,
+                 [recv_buf,
+                  split_sizes,
+                  displacements,
+                  MPI.DOUBLE
+                  ]
+                 )
+    if rank == 0:
+        print(recv_buf)
+        print(recv_buf.shape)
+        #
+        for i in range(lineages_num):
+            result_output['Mutation_Fitness'][lineage_id[i]] = recv_buf[i, 1]
+            result_output['Establishment_Time'][lineage_id[i]] = recv_buf[i, 2]
+            result_output['Likelihood_Log'][lineage_id[i]] = recv_buf[i, 3]
+            result_output['Likelihood_Log_Adaptive'][lineage_id[i]] = recv_buf[i, 4]
+            result_output['Likelihood_Log_Neutral'][lineage_id[i]] = recv_buf[i, 5]
+
+        tempt = list(itertools.zip_longest(*list(result_output.values())))
+
+        with open(output_filename + '_MutSeq_Result.csv', 'w') as f:
+            w = csv.writer(f)
+            w.writerow(result_output.keys())
+            w.writerows(tempt)
+
+
 if __name__ == "__main__":
     main()
