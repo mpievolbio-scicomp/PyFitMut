@@ -1,4 +1,6 @@
+import numpy
 import numpy as np
+import sys
 import pandas as pd
 import scipy as sp
 from scipy.optimize import minimize
@@ -12,7 +14,7 @@ from mpi4py import MPI
 import logging
 import mpi4py
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 # Setup MPI
 comm = MPI.COMM_WORLD
@@ -492,6 +494,8 @@ def main():
     output_filename = args.output_filename
 
     lineages_num_unfiltered = np.shape(read_num_seq)[0]
+    if rank == 0:
+        logging.debug("Number of unfiltered lineages: %d", lineages_num_unfiltered)
 
     # remove very noisy lineages
     filter_output = fun_filter(read_num_seq)
@@ -557,6 +561,7 @@ def main():
     Ub_global = Ub
 
     read_num_seq = read_num_seq[:, :-1]
+
     cell_num_seq = read_num_seq / read_depth_seq_global * cell_depth_seq_global
     
     result_output = {'Mutation_Fitness': np.zeros(lineages_num_unfiltered),
@@ -569,6 +574,8 @@ def main():
 
     lineage_id = filter_output['Lineage_ID']
     lineages_num = np.shape(read_num_seq)[0]
+    if rank == 0:
+        logging.debug("Number of filtered lineages: %d", lineages_num_unfiltered)
     #x0 = [0.005, np.random.uniform(0,9)]
     #x0 = [0.01, 0.01]
     x0 = [0.01, 50/100]
@@ -577,54 +584,79 @@ def main():
     
     # for i in tqdm(range(int(lineages_num))):
 
-    # We need an array to store results from each lineage in.
-    mpi_mutation_fitness = []
-    mpi_establishment_time = []
-    mpi_likelihood_log_adaptive = []
-    mpi_likelihood_log = []
+    # Master process takes the first few tasks such that the rest can be distributed evenly across slaves.
+    all_tasks = np.array_split(np.arange(lineages_num), size)
+    my_tasks = all_tasks[rank]
+    number_of_tasks = [len(chunk) for chunk in all_tasks]
+    split_sizes = np.array(number_of_tasks)*6
+    displacements = np.insert(np.cumsum(split_sizes), 0, 0)[0:-1]
 
-    for i in range(int(lineages_num)):
+    logging.debug("rank: %d | tasks: %s | ntasks: %d", rank, str(my_tasks), len(my_tasks))
 
-        # Distribute tasks in round-robin fashion across all ranks.
-        if i % size != rank: continue
-        logging.debug("Running lineage %d on MPI rank %d.", i, rank)
+    comm.Barrier()
+    if rank == 0:
+        logging.debug("displacements: %s", str(displacements))
 
+    send_buf = np.zeros((len(my_tasks), 6), dtype=np.double)
+    recv_buf = None
+    if rank == 0:
+        recv_buf = np.zeros((lineages_num, 6), dtype=np.double)
+
+    for i in my_tasks:
+        t = i - my_tasks[0]
+
+        # logging.debug("Running tasks %d on rank %d", i, rank)
         read_num_measure_global = read_num_seq[i, :]
         cell_num_measure_global = cell_num_seq[i, :]
         tempt1 = -fun_likelihood_lineage_neu_opt([1e-5, 0])
         # result_output['Likelihood_Log_Neutral'][lineage_id[i]] = tempt1
         if tempt1 <= -60:
-            logging.debug("i=%d: Entering minimization")
+            logging.debug("rank = %d | i = %d: Entering minimization", rank, i)
             opt_output = minimize(fun_likelihood_lineage_adp_opt, x0, method='L-BFGS-B', bounds=bounds, 
                                   options={'ftol': 1e-8, 'gtol': 1e-8, 'eps':1e-8, 'maxls':100, 'disp': False})
             # Append results for this lineage to the mpi_results collector.
-            logging.debug("i=%d: Done with minimization")
+            logging.debug("rank= %d | i=%d: Done with minimization", rank, i )
 
-            mpi_mutation_fitness.append(i**2+3.14)
+            logging.debug("rank = %d | i = %d | send_buf = %s", rank, i, str(send_buf))
+            send_buf[t, 1] = opt_output.x[0]                # Mutation fitness
+            send_buf[t, 2] = opt_output.x[1]                # Establishment time
+            send_buf[t, 3] = -opt_output.fun - tempt1       # Likelihood log
+            send_buf[t, 4] = -opt_output.fun                # Likelihood log adaptive
+            send_buf[t, 5] = tempt1                         # Likelihood log neutral
+
             # mpi_mutation_fitness.append(opt_output.x[0])
             # mpi_establishment_time.append(opt_output.x[1] * 100)
             # mpi_likelihood_log_adaptive.append(-opt_output.fun)
             # mpi_likelihood_log.append(-opt_output.fun - tempt1)
 
-        logging.info("i=%d done", i)
+        send_buf[t, 0] = i
+        # logging.info("i=%d done", i)
 
     comm.Barrier()
+    comm.Gatherv(send_buf,
+                 [recv_buf,
+                  split_sizes,
+                  displacements,
+                  MPI.DOUBLE
+                  ]
+                 )
     if rank == 0:
-        logging.info("Gathering")
-        mpi_mutation_fitness = comm.gather(mpi_mutation_fitness, root=0)
-
-        print(mpi_mutation_fitness)
+        print(recv_buf)
+        print(recv_buf.shape)
         #
-        # result_output['Mutation_Fitness'][lineage_id[i]] = opt_output.x[0]
-        # result_output['Establishment_Time'][lineage_id[i]] = opt_output.x[1] * 100
-        # result_output['Likelihood_Log_Adaptive'][lineage_id[i]] = -opt_output.fun
-        # result_output['Likelihood_Log'][lineage_id[i]] = -opt_output.fun - tempt1
-        # tempt = list(itertools.zip_longest(*list(result_output.values())))
+        for i in range(lineages_num):
+            result_output['Mutation_Fitness'][lineage_id[i]] = recv_buf[i, 1]
+            result_output['Establishment_Time'][lineage_id[i]] = recv_buf[i, 2]
+            result_output['Likelihood_Log'][lineage_id[i]] = recv_buf[i, 3]
+            result_output['Likelihood_Log_Adaptive'][lineage_id[i]] = recv_buf[i, 4]
+            result_output['Likelihood_Log_Neutral'][lineage_id[i]] = recv_buf[i, 5]
 
-        # with open(output_filename + '_MutSeq_Result.csv', 'w') as f:
-        #     w = csv.writer(f)
-        #     w.writerow(result_output.keys())
-        #     w.writerows(tempt)
+        tempt = list(itertools.zip_longest(*list(result_output.values())))
+
+        with open(output_filename + '_MutSeq_Result.mpi.csv', 'w') as f:
+            w = csv.writer(f)
+            w.writerow(result_output.keys())
+            w.writerows(tempt)
 
 
 if __name__ == "__main__":
