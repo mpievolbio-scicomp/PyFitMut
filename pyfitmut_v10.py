@@ -605,11 +605,15 @@ def main():
     for i in my_tasks:
         t = i - my_tasks[0]
 
+        send_buf[t, 0] = i
+
         # logging.debug("Running tasks %d on rank %d", i, rank)
         read_num_measure_global = read_num_seq[i, :]
         cell_num_measure_global = cell_num_seq[i, :]
         tempt1 = -fun_likelihood_lineage_neu_opt([1e-5, 0])
         # result_output['Likelihood_Log_Neutral'][lineage_id[i]] = tempt1
+        send_buf[t, 5] = tempt1                         # Likelihood log neutral
+
         if tempt1 <= -60:
             logging.debug("rank = %d | i = %d: Entering minimization", rank, i)
             opt_output = minimize(fun_likelihood_lineage_adp_opt, x0, method='L-BFGS-B', bounds=bounds, 
@@ -622,14 +626,12 @@ def main():
             send_buf[t, 2] = opt_output.x[1]                # Establishment time
             send_buf[t, 3] = -opt_output.fun - tempt1       # Likelihood log
             send_buf[t, 4] = -opt_output.fun                # Likelihood log adaptive
-            send_buf[t, 5] = tempt1                         # Likelihood log neutral
 
             # mpi_mutation_fitness.append(opt_output.x[0])
             # mpi_establishment_time.append(opt_output.x[1] * 100)
             # mpi_likelihood_log_adaptive.append(-opt_output.fun)
             # mpi_likelihood_log.append(-opt_output.fun - tempt1)
 
-        send_buf[t, 0] = i
         # logging.info("i=%d done", i)
 
     comm.Barrier()
@@ -653,7 +655,7 @@ def main():
 
         tempt = list(itertools.zip_longest(*list(result_output.values())))
 
-        with open(output_filename + '_MutSeq_Result.mpi.csv', 'w') as f:
+        with open(output_filename + '_MutSeq_Result.csv', 'w') as f:
             w = csv.writer(f)
             w.writerow(result_output.keys())
             w.writerows(tempt)
