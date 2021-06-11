@@ -14,12 +14,15 @@ from mpi4py import MPI
 import logging
 import mpi4py
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 # Setup MPI
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
+
+if rank == 0:
+    logging.info("Running on %d MPI ranks.", size)
 
 
 read_num_t1_global = None
@@ -495,7 +498,7 @@ def main():
 
     lineages_num_unfiltered = np.shape(read_num_seq)[0]
     if rank == 0:
-        logging.debug("Number of unfiltered lineages: %d", lineages_num_unfiltered)
+        logging.info("Number of unfiltered lineages: %d", lineages_num_unfiltered)
 
     # remove very noisy lineages
     filter_output = fun_filter(read_num_seq)
@@ -575,7 +578,7 @@ def main():
     lineage_id = filter_output['Lineage_ID']
     lineages_num = np.shape(read_num_seq)[0]
     if rank == 0:
-        logging.debug("Number of filtered lineages: %d", lineages_num_unfiltered)
+        logging.info("Number of filtered lineages: %d", lineages_num_unfiltered)
     #x0 = [0.005, np.random.uniform(0,9)]
     #x0 = [0.01, 0.01]
     x0 = [0.01, 50/100]
@@ -591,7 +594,7 @@ def main():
     split_sizes = np.array(number_of_tasks)*6
     displacements = np.insert(np.cumsum(split_sizes), 0, 0)[0:-1]
 
-    logging.debug("rank: %d | tasks: %s | ntasks: %d", rank, str(my_tasks), len(my_tasks))
+    logging.info("rank: %d | tasks: %s | ntasks: %d", rank, str(my_tasks), len(my_tasks))
 
     comm.Barrier()
     if rank == 0:
@@ -602,7 +605,7 @@ def main():
     if rank == 0:
         recv_buf = np.zeros((lineages_num, 6), dtype=np.double)
 
-    for i in my_tasks:
+    for i in tqdm(my_tasks):
         t = i - my_tasks[0]
 
         send_buf[t, 0] = i
@@ -623,16 +626,10 @@ def main():
 
             logging.debug("rank = %d | i = %d | send_buf = %s", rank, i, str(send_buf))
             send_buf[t, 1] = opt_output.x[0]                # Mutation fitness
-            send_buf[t, 2] = opt_output.x[1]                # Establishment time
+            send_buf[t, 2] = opt_output.x[1]*100            # Establishment time
             send_buf[t, 3] = -opt_output.fun - tempt1       # Likelihood log
             send_buf[t, 4] = -opt_output.fun                # Likelihood log adaptive
 
-            # mpi_mutation_fitness.append(opt_output.x[0])
-            # mpi_establishment_time.append(opt_output.x[1] * 100)
-            # mpi_likelihood_log_adaptive.append(-opt_output.fun)
-            # mpi_likelihood_log.append(-opt_output.fun - tempt1)
-
-        # logging.info("i=%d done", i)
 
     comm.Barrier()
     comm.Gatherv(send_buf,
